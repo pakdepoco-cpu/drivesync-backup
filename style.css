@@ -1,0 +1,85 @@
+/* Custom styles and animations for DriveSync */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --google-blue: #4285F4;
+  --google-green: #34A853;
+  --google-yellow: #FBBC05;
+  --google-red: #EA4335;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: #0B0F17;
+  color: #F3F4F6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+/* Glassmorphism effects */
+.glass-panel {
+  background: rgba(17, 24, 39, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-card {
+  background: rgba(23, 31, 48, 0.6);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: all 0.2s ease-in-out;
+}
+
+.glass-card:hover {
+  background: rgba(30, 41, 64, 0.75);
+  border-color: rgba(66, 133, 244, 0.3);
+  transform: translateY(-2px);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0B0F17;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1F2937;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #374151;
+}
+
+/* Pulse animation */
+@keyframes pulse-ring {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.15); opacity: 0.4; }
+  100% { transform: scale(0.95); opacity: 0.8; }
+}
+
+.pulse-active {
+  animation: pulse-ring 2.5s infinite ease-in-out;
+}
+
+/* Smooth modal transition */
+.modal-enter {
+  opacity: 0;
+  transform: scale(0.95);
+}
+.modal-enter-active {
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity 200ms ease-out, transform 200ms ease-out;
+}
+

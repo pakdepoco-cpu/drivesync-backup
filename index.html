@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DriveSync - Automasi & Viewer Folder Backup Google Drive</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            drive: {
+              blue: '#4285F4',
+              green: '#34A853',
+              yellow: '#FBBC05',
+              red: '#EA4335'
+            },
+            darkBg: '#0B0F17',
+            cardBg: '#131B2E',
+            borderSubtle: '#1E293B'
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body class="bg-darkBg text-slate-100 min-h-screen flex flex-col antialiased selection:bg-drive-blue selection:text-white">
+
+  <!-- TOP NAVIGATION BAR -->
+  <header class="sticky top-0 z-40 glass-panel border-b border-borderSubtle/60 px-6 py-3.5">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      
+      <!-- Logo & Folder Info -->
+      <div class="flex items-center space-x-3.5">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-drive-blue via-indigo-600 to-drive-green p-0.5 shadow-lg shadow-drive-blue/20">
+          <div class="w-full h-full bg-[#0E1524] rounded-[10px] flex items-center justify-center">
+            <i data-lucide="hard-drive-download" class="w-5 h-5 text-drive-blue"></i>
+          </div>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <h1 class="text-base font-bold tracking-tight text-white flex items-center gap-1.5">
+              DriveSync <span class="text-xs px-2 py-0.5 rounded-full bg-drive-blue/15 text-drive-blue border border-drive-blue/30 font-medium">Backup Viewer</span>
+            </h1>
+          </div>
+          <p id="folderNameBadge" class="text-xs text-slate-400 flex items-center gap-1">
+            <i data-lucide="folder" class="w-3.5 h-3.5 text-drive-yellow"></i>
+            <span id="folderLabel">Folder: Target Backup</span>
+          </p>
+        </div>
+      </div>
+
+      <!-- Action buttons & Auto-sync badge -->
+      <div class="flex items-center space-x-3">
+        <!-- Status Indicator Pill -->
+        <div id="connectionStatusPill" class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 pulse-active"></span>
+          <span id="connectionStatusText">Auto-Sync Aktif</span>
+        </div>
+
+        <!-- Sync Now Button -->
+        <button id="syncBtn" class="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition active:scale-95 shadow-sm">
+          <i data-lucide="refresh-cw" id="syncIcon" class="w-3.5 h-3.5 text-drive-blue"></i>
+          <span>Sinkronkan</span>
+        </button>
+
+        <!-- Settings Button -->
+        <button id="openSettingsBtn" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition active:scale-95" title="Pengaturan Koneksi Google Drive">
+          <i data-lucide="settings" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN DASHBOARD CONTENT -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-6 py-6 space-y-6">
+
+    <!-- BANNER PEMBERITAHUAN DEMO / STATUS KONEKSI -->
+    <div id="noticeBanner" class="hidden rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-amber-200">
+      <div class="flex items-start gap-3">
+        <i data-lucide="info" class="w-5 h-5 text-amber-400 shrink-0 mt-0.5"></i>
+        <div class="flex-1 text-xs space-y-1">
+          <p class="font-semibold text-amber-100">Mode Demo & Konfigurasi Google Drive</p>
+          <p class="text-amber-200/90 leading-relaxed">
+            Saat ini menampilkan sampel data file backup. Untuk menghubungkan ke folder Google Drive Anda secara langsung, klik tombol <span class="font-semibold underline cursor-pointer" onclick="openSettingsModal()">Pengaturan</span> di pojok kanan atas untuk memasukkan <strong>Folder ID</strong> dan API Key atau kredensial Service Account.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- METRICS CARDS -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <!-- Total File Card -->
+      <div class="glass-card rounded-2xl p-4 flex items-center justify-between">
+        <div class="space-y-1">
+          <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Total File Backup</p>
+          <p id="metricTotalFiles" class="text-2xl font-bold text-white font-mono">0</p>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-drive-blue/10 border border-drive-blue/20 flex items-center justify-center text-drive-blue">
+          <i data-lucide="files" class="w-6 h-6"></i>
+        </div>
+      </div>
+
+      <!-- Total Size Card -->
+      <div class="glass-card rounded-2xl p-4 flex items-center justify-between">
+        <div class="space-y-1">
+          <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Kapasitas Backup</p>
+          <p id="metricTotalSize" class="text-2xl font-bold text-white font-mono">0 MB</p>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
+          <i data-lucide="database" class="w-6 h-6"></i>
+        </div>
+      </div>
+
+      <!-- Last Modified Card -->
+      <div class="glass-card rounded-2xl p-4 flex items-center justify-between">
+        <div class="space-y-1">
+          <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Backup Terbaru</p>
+          <p id="metricLastModified" class="text-sm font-semibold text-white truncate max-w-[170px]">-</p>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+          <i data-lucide="clock" class="w-6 h-6"></i>
+        </div>
+      </div>
+
+      <!-- Sync Frequency Card -->
+      <div class="glass-card rounded-2xl p-4 flex items-center justify-between">
+        <div class="space-y-1">
+          <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Interval Automasi</p>
+          <div class="flex items-center gap-1.5">
+            <span class="text-sm font-semibold text-white font-mono" id="autoSyncLabel">Tiap 60s</span>
+            <span class="text-[11px] text-slate-400">(Otomatis)</span>
+          </div>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-drive-yellow/10 border border-drive-yellow/20 flex items-center justify-center text-drive-yellow">
+          <i data-lucide="activity" class="w-6 h-6"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOOLBAR & FILTERS -->
+    <div class="glass-panel rounded-2xl p-4 space-y-3.5">
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+        
+        <!-- Live Search -->
+        <div class="relative flex-1 max-w-md">
+          <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+          <input 
+            type="text" 
+            id="searchInput" 
+            placeholder="Cari file backup (contoh: .sql, database, backup.zip)..." 
+            class="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-900/80 border border-slate-700/80 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-drive-blue focus:ring-1 focus:ring-drive-blue transition"
+          />
+        </div>
+
+        <!-- Controls: Category Pills, Sort, View Toggle -->
+        <div class="flex flex-wrap items-center gap-2">
+          
+          <!-- Sort Options -->
+          <div class="flex items-center gap-1.5 bg-slate-900/80 border border-slate-700/80 rounded-xl px-2.5 py-1.5">
+            <i data-lucide="arrow-up-down" class="w-3.5 h-3.5 text-slate-400"></i>
+            <select id="sortSelect" class="bg-transparent text-xs text-slate-300 focus:outline-none cursor-pointer">
+              <option value="date-desc">Terbaru</option>
+              <option value="date-asc">Terlama</option>
+              <option value="size-desc">Ukuran Terbesar</option>
+              <option value="name-asc">Nama (A-Z)</option>
+            </select>
+          </div>
+
+          <!-- View Mode (Table / Grid) -->
+          <div class="flex items-center bg-slate-900/80 border border-slate-700/80 rounded-xl p-0.5">
+            <button id="viewTableBtn" class="px-2.5 py-1 rounded-lg bg-drive-blue text-white text-xs font-medium transition" title="Tampilan Tabel">
+              <i data-lucide="list" class="w-3.5 h-3.5"></i>
+            </button>
+            <button id="viewGridBtn" class="px-2.5 py-1 rounded-lg text-slate-400 hover:text-white text-xs font-medium transition" title="Tampilan Kotak (Grid)">
+              <i data-lucide="grid" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Category Filter Pills -->
+      <div class="flex flex-wrap items-center gap-1.5 pt-1 border-t border-slate-800/80">
+        <button data-category="all" class="category-pill active px-3 py-1 rounded-full text-xs font-medium bg-drive-blue text-white transition">
+          Semua File (<span id="countAll">0</span>)
+        </button>
+        <button data-category="database" class="category-pill px-3 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-400 hover:text-slate-200 transition">
+          <i data-lucide="database" class="w-3 h-3 inline mr-1 text-emerald-400"></i>Database / SQL
+        </button>
+        <button data-category="archive" class="category-pill px-3 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-400 hover:text-slate-200 transition">
+          <i data-lucide="archive" class="w-3 h-3 inline mr-1 text-amber-400"></i>Arsip (ZIP/GZ/RAR)
+        </button>
+        <button data-category="document" class="category-pill px-3 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-400 hover:text-slate-200 transition">
+          <i data-lucide="file-text" class="w-3 h-3 inline mr-1 text-red-400"></i>Dokumen & PDF
+        </button>
+        <button data-category="image" class="category-pill px-3 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-400 hover:text-slate-200 transition">
+          <i data-lucide="image" class="w-3 h-3 inline mr-1 text-blue-400"></i>Gambar / Media
+        </button>
+      </div>
+    </div>
+
+    <!-- FILE DISPLAY SECTION -->
+    <div class="glass-panel rounded-2xl overflow-hidden shadow-2xl">
+      
+      <!-- TABLE VIEW -->
+      <div id="tableView" class="overflow-x-auto">
+        <table class="w-full text-left text-xs text-slate-300">
+          <thead class="bg-slate-900/90 text-slate-400 uppercase tracking-wider font-semibold border-b border-borderSubtle">
+            <tr>
+              <th scope="col" class="py-3.5 px-4">Nama File Backup</th>
+              <th scope="col" class="py-3.5 px-4">Kategori / Format</th>
+              <th scope="col" class="py-3.5 px-4">Ukuran File</th>
+              <th scope="col" class="py-3.5 px-4">Waktu Modifikasi / Backup</th>
+              <th scope="col" class="py-3.5 px-4 text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="fileTableBody" class="divide-y divide-borderSubtle/50">
+            <!-- Dynamic rows rendered by app.js -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- GRID VIEW (HIDDEN BY DEFAULT) -->
+      <div id="gridView" class="hidden p-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <!-- Dynamic cards rendered by app.js -->
+      </div>
+
+      <!-- EMPTY STATE -->
+      <div id="emptyState" class="hidden py-16 text-center space-y-3">
+        <div class="w-14 h-14 rounded-2xl bg-slate-800/80 mx-auto flex items-center justify-center text-slate-500">
+          <i data-lucide="folder-search" class="w-7 h-7"></i>
+        </div>
+        <h3 class="text-sm font-semibold text-slate-300">Tidak ada file yang cocok</h3>
+        <p class="text-xs text-slate-500 max-w-sm mx-auto">
+          Tidak ditemukan file yang sesuai dengan kata kunci pencarian atau filter yang dipilih.
+        </p>
+      </div>
+
+      <!-- FOOTER TABLE SUMMARY -->
+      <div class="bg-slate-900/60 border-t border-borderSubtle px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-400">
+        <div class="flex items-center gap-1.5">
+          <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-400"></i>
+          <span>Menampilkan <strong id="visibleFileCount" class="text-slate-200">0</strong> dari <strong id="totalFileCount" class="text-slate-200">0</strong> file</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span>Sinkronisasi Terakhir: <span id="lastSyncLabel" class="text-slate-300 font-mono">Belum pernah</span></span>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- MODAL: PREVIEW FILE -->
+  <div id="previewModal" class="fixed inset-0 z-50 hidden bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 transition-all duration-200">
+    <div id="previewModalDialog" class="relative w-full max-w-5xl h-[88vh] glass-panel rounded-2xl border border-slate-700/80 shadow-2xl overflow-hidden flex flex-col transition-all duration-300">
+      
+      <!-- Modal Header -->
+      <div class="px-5 py-3.5 border-b border-borderSubtle flex items-center justify-between bg-slate-900/90 shrink-0">
+        <div class="flex items-center space-x-2.5 overflow-hidden">
+          <div id="modalIconContainer" class="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-drive-blue shrink-0">
+            <i data-lucide="file" class="w-4 h-4"></i>
+          </div>
+          <div class="truncate">
+            <h3 id="modalFileName" class="text-sm font-bold text-white truncate">preview_file.ext</h3>
+            <p id="modalFileMeta" class="text-[11px] text-slate-400 font-mono">2.4 MB • 28 Okt 2026</p>
+          </div>
+        </div>
+        <div class="flex items-center space-x-1 shrink-0">
+          <button id="toggleExpandModalBtn" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition" title="Perbesar / Layar Penuh">
+            <i data-lucide="maximize-2" id="expandModalIcon" class="w-4 h-4"></i>
+          </button>
+          <button id="closeModalBtn" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition" title="Tutup">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Modal Body (Preview Canvas / Viewer) -->
+      <div id="modalBody" class="flex-1 overflow-hidden p-3 sm:p-4 bg-darkBg/95 flex flex-col items-center justify-center min-h-[300px]">
+        <!-- Dynamic preview content -->
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="px-5 py-3 border-t border-borderSubtle bg-slate-900/90 flex items-center justify-between shrink-0">
+        <a id="modalDriveLink" href="#" target="_blank" class="text-xs text-drive-blue hover:underline flex items-center gap-1">
+          <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+          Buka di Google Drive
+        </a>
+        <div class="flex items-center gap-2">
+          <button id="modalCloseBtn2" class="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition">
+            Tutup
+          </button>
+          <a id="modalDownloadBtn" href="#" target="_blank" download class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-drive-blue hover:bg-blue-600 text-white text-xs font-semibold shadow transition">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i>
+            Unduh File
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: SETTINGS & GOOGLE DRIVE CONFIGURATION -->
+  <div id="settingsModal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="relative w-full max-w-lg glass-panel rounded-2xl border border-slate-700/80 shadow-2xl overflow-hidden flex flex-col">
+      <div class="px-5 py-4 border-b border-borderSubtle flex items-center justify-between bg-slate-900/90">
+        <div class="flex items-center space-x-2">
+          <i data-lucide="settings" class="w-5 h-5 text-drive-blue"></i>
+          <h3 class="text-sm font-bold text-white">Pengaturan Folder Google Drive</h3>
+        </div>
+        <button onclick="closeSettingsModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-5 space-y-4 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-200 mb-1">Google Drive Folder ID</label>
+          <input 
+            type="text" 
+            id="cfgFolderId" 
+            placeholder="Contoh: 1b2c3d4e5f6g7h8i9j0k..." 
+            class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-drive-blue font-mono"
+          />
+          <p class="text-[11px] text-slate-400 mt-1">
+            Ambil dari link URL folder di Google Drive browser: <code class="text-slate-300">drive.google.com/drive/folders/<strong>[FOLDER_ID]</strong></code>
+          </p>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-200 mb-1">Google Drive API Key (Opsional untuk Client-Side)</label>
+          <input 
+            type="password" 
+            id="cfgApiKey" 
+            placeholder="AIzaSy..." 
+            class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-drive-blue font-mono"
+          />
+          <p class="text-[11px] text-slate-400 mt-1">
+            Jika folder backup Anda di-share publik ("Anyone with link"), cukup masukkan API Key di sini tanpa perlu backend server.
+          </p>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-200 mb-1">Interval Auto-Refresh (Detik)</label>
+          <select id="cfgInterval" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 focus:outline-none focus:border-drive-blue">
+            <option value="30">Tiap 30 Detik</option>
+            <option value="60" selected>Tiap 1 Menit (Rekomendasi)</option>
+            <option value="300">Tiap 5 Menit</option>
+            <option value="0">Nonaktif (Manual Sync)</option>
+          </select>
+        </div>
+
+        <div class="pt-2 border-t border-slate-800 flex items-center justify-between">
+          <button type="button" id="toggleDemoBtn" class="text-drive-blue hover:underline font-semibold">
+            Gunakan Demo Mode
+          </button>
+          <div class="flex items-center gap-2">
+            <button onclick="closeSettingsModal()" class="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700">
+              Batal
+            </button>
+            <button id="saveSettingsBtn" class="px-4 py-1.5 rounded-lg bg-drive-blue hover:bg-blue-600 text-white font-semibold shadow">
+              Simpan & Sinkronkan
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="mt-auto border-t border-borderSubtle py-4 px-6 text-center text-xs text-slate-500">
+    <p>DriveSync Backup Automasi &bull; Google Drive REST API v3 Integration</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
+
